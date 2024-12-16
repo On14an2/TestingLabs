@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Restore Dependencies') {
+            steps {
+                sh 'dotnet restore'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'dotnet build --configuration Release'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'dotnet test --logger "trx;LogFileName=TestResults.trx"'
+            }
+        }
+
+        stage('Convert TRX to JUnit XML') {
+            steps {
+                sh '''
+                dotnet tool install -g trx2junit
+                trx2junit TestResults.trx
+                '''
+            }
+        }
+
+        stage('Publish Results') {
+            steps {
+                junit 'TestResults.xml'
+            }
+        }
+    }
+}
